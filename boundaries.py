@@ -1,6 +1,11 @@
 import numpy as np
 
-def exchange_BC_all(GR, HGHT, UWIND, VWIND):
+def exchange_BC(GR, FIELD):
+    FIELD = exchange_BC_periodic_x(GR, FIELD)
+    FIELD = exchange_BC_rigid_y(GR, FIELD)
+    return(FIELD)
+
+def exchange_BC_all(GR, HGHT, UWIND, VWIND, TRACER):
 
     #VWIND[GR.ii,1] = 1
     #VWIND[GR.ii,2] = 2
@@ -9,42 +14,19 @@ def exchange_BC_all(GR, HGHT, UWIND, VWIND):
     HGHT = exchange_BC_periodic_x(GR, HGHT)
     UWIND = exchange_BC_periodic_x(GR, UWIND)
     VWIND = exchange_BC_periodic_x(GR, VWIND)
+    TRACER = exchange_BC_periodic_x(GR, TRACER)
 
     HGHT = exchange_BC_rigid_y(GR, HGHT)
     UWIND = exchange_BC_rigid_y(GR, UWIND)
     VWIND = exchange_BC_rigid_y(GR, VWIND)
+    TRACER = exchange_BC_rigid_y(GR, TRACER)
 
-    return(HGHT, UWIND, VWIND)
-
-
-def exchange_BC_winds(GR, UWIND, VWIND):
-
-    UWIND = exchange_BC_periodic_x(GR, UWIND)
-    VWIND = exchange_BC_periodic_x(GR, VWIND)
-
-    UWIND = exchange_BC_rigid_y(GR, UWIND)
-    VWIND = exchange_BC_rigid_y(GR, VWIND)
-
-    return(UWIND, VWIND)
+    return(HGHT, UWIND, VWIND, TRACER)
 
 
-def exchange_BC_height(GR, HGHT):
-
-    HGHT = exchange_BC_periodic_x(GR, HGHT)
-    HGHT = exchange_BC_rigid_y(GR, HGHT)
-
-    return(HGHT)
 
 
-def exchange_BC_fluxes_mp(GR, UFLX_mp, VFLX_mp):
 
-    UFLX_mp = exchange_BC_periodic_x(GR, UFLX_mp)
-    VFLX_mp = exchange_BC_periodic_x(GR, VFLX_mp)
-
-    UFLX_mp = exchange_BC_rigid_y(GR, UFLX_mp)
-    VFLX_mp = exchange_BC_rigid_y(GR, VFLX_mp)
-
-    return(UFLX_mp, VFLX_mp)
 
 
 def exchange_BC_periodic_x(GR, FIELD):

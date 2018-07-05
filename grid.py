@@ -1,6 +1,7 @@
 import numpy as np
 from namelist import *
 from constants import con_rE, con_omega
+from boundaries import exchange_BC_rigid_y
 
 class Grid:
 
@@ -85,6 +86,7 @@ class Grid:
         self.dxis = np.full( (self.nxs+2*self.nb,self.ny+2*self.nb), np.nan)
 
         self.dx[self.iijj] = np.cos( self.lat_rad[self.iijj] )*self.dlon_rad*con_rE 
+        self.dx = exchange_BC_rigid_y(self, self.dx)
         self.dxjs[self.iijjs] = np.cos( self.latjs_rad[self.iijjs] )*self.dlon_rad*con_rE 
         self.dxis[self.iisjj] = np.cos( self.latis_rad[self.iisjj] )*self.dlon_rad*con_rE 
         self.dy = self.dlat_rad*con_rE
@@ -104,21 +106,23 @@ class Grid:
                 lat1 = self.latjs_rad[i,j+1]
                 self.A[i,j] = lat_lon_recangle_area(lon0,lon1,lat0,lat1, i_curved_earth)
 
-        print('fraction of earth covered: ' + str(np.round(np.sum(self.A[self.iijj])/(4*np.pi),2)))
-        print('fraction of cylinder covered: ' + str(np.round(np.sum(self.A[self.iijj])/(2*np.pi**2),2)))
+        print('fraction of earth covered: ' + str(np.round(np.sum(self.A[self.iijj])/(4*np.pi*con_rE**2),2)))
+        print('fraction of cylinder covered: ' + str(np.round(np.sum(self.A[self.iijj])/(2*np.pi**2*con_rE**2),2)))
 
         # CORIOLIS FORCE
+        self.corf = np.full( (self.nx+2*self.nb,self.ny+2*self.nb), np.nan)
         self.corf_is = np.full( (self.nxs+2*self.nb,self.ny+2*self.nb), np.nan)
         self.corf_js = np.full( (self.nx+2*self.nb,self.nys+2*self.nb), np.nan)
+        self.corf[self.iijj] = 2*con_omega*np.sin(self.lat_rad[self.iijj])
         self.corf_is[self.iisjj] = 2*con_omega*np.sin(self.latis_rad[self.iisjj])
         self.corf_js[self.iijjs] = 2*con_omega*np.sin(self.latjs_rad[self.iijjs])
 
         # TIME STEP
-        mindx = np.nanmin(self.dxjs)
-        CFL = 0.60
+        mindx = np.nanmin(self.dx)
+        self.CFL = CFL
         self.i_out_nth_hour = i_out_nth_hour
         self.i_sim_n_days = i_sim_n_days
-        self.dt = int(CFL*mindx/340)
+        self.dt = int(self.CFL*mindx/340)
         while i_out_nth_hour*3600 % self.dt > 0:
             self.dt -= 1
         self.nts = i_sim_n_days*3600*24/self.dt
@@ -131,7 +135,7 @@ class Grid:
 
 def lat_lon_recangle_area(lon0,lon1,lat0,lat1, i_curved_earth):
     if i_curved_earth:
-        A = 2*np.pi * np.abs(np.sin(lat0) - np.sin(lat1)) * np.abs(lon0 - lon1)/(2*np.pi)
+        A = 2*np.pi * np.abs(np.sin(lat0) - np.sin(lat1)) * np.abs(lon0 - lon1)/(2*np.pi) * con_rE**2
     else:
-        A = np.abs(lat0 - lat1) * np.abs(lon0 - lon1)
+        A = np.abs(lat0 - lat1) * np.abs(lon0 - lon1) * con_rE**2
     return(A)

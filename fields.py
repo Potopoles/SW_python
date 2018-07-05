@@ -1,11 +1,13 @@
 import numpy as np
 from namelist import *
-from boundaries import exchange_BC_all
+from boundaries import exchange_BC_all, exchange_BC_rigid_y, exchange_BC_periodic_x
+from IO import load_topo
 
 def initialize_fields(GR):
     # CREATE ARRAYS
     # height
     HGHT = np.full( (GR.nx+2*GR.nb,GR.ny+2*GR.nb), np.nan)
+    HTOP = np.full( (GR.nx+2*GR.nb,GR.ny+2*GR.nb), np.nan)
     # wind velocities
     UWIND = np.full( (GR.nxs+2*GR.nb,GR.ny+2*GR.nb), np.nan)
     VWIND = np.full( (GR.nx+2*GR.nb,GR.nys+2*GR.nb), np.nan)
@@ -15,26 +17,44 @@ def initialize_fields(GR):
     VFLX = np.full( (GR.nx+2*GR.nb,GR.nys+2*GR.nb), np.nan)
     # mass fluxes at mass points
     UFLX = np.full( (GR.nxs+2*GR.nb,GR.ny+2*GR.nb), np.nan)
-    UFLX_mp = np.full( (GR.nx+2*GR.nb,GR.ny+2*GR.nb), np.nan)
-    VFLX_mp = np.full( (GR.nx+2*GR.nb,GR.ny+2*GR.nb), np.nan)
+    UFLXMP = np.full( (GR.nx+2*GR.nb,GR.ny+2*GR.nb), np.nan)
+    VFLXMP = np.full( (GR.nx+2*GR.nb,GR.ny+2*GR.nb), np.nan)
     # momentum fluxes at velocity points
     UUFLX = np.full( (GR.nxs+2*GR.nb,GR.ny+2*GR.nb), np.nan)
+    VUFLX = np.full( (GR.nx+2*GR.nb,GR.nys+2*GR.nb), np.nan)
+    UVFLX = np.full( (GR.nxs+2*GR.nb,GR.ny+2*GR.nb), np.nan)
     VVFLX = np.full( (GR.nx+2*GR.nb,GR.nys+2*GR.nb), np.nan)
+    # surface height
+    HSURF = load_topo(GR) 
+    # tracer
+    TRACER = np.full( (GR.nx+2*GR.nb,GR.ny+2*GR.nb), np.nan)
 
+    
     # INITIAL CONDITIONS
-    HGHT[GR.iijj] = h0
+    HGHT[GR.iijj] = h0 - HSURF[GR.iijj]
+    HTOP[GR.iijj] = HSURF[GR.iijj] + HGHT[GR.iijj]
     UWIND[GR.iisjj] = u0   
     VWIND[GR.iijjs] = 0.
 
     HGHT = gaussian2D(GR, HGHT, hpert, np.pi*3/4, 0, np.pi/10, np.pi/10)
+    HGHT = random2D(GR, HGHT, h_random_pert)
+
+    TRACER[GR.iijj] = 0.
+    TRACER = gaussian2D(GR, TRACER, 10, np.pi*3/4, 0, np.pi/10, np.pi/10)
 
     # BOUNDARY CONDITIONS
-    HGHT, UWIND, VWIND = exchange_BC_all(GR, HGHT, UWIND, VWIND)
+    HGHT, UWIND, VWIND, TRACER = exchange_BC_all(GR, HGHT, UWIND, VWIND, TRACER)
 
-    return(HGHT, UWIND, VWIND, WIND, UFLX, VFLX, UFLX_mp, VFLX_mp, UUFLX, VVFLX)
+    return(HGHT, HTOP, UWIND, VWIND, WIND,
+            UFLX, VFLX, UFLXMP, VFLXMP,
+            UUFLX, VUFLX, UVFLX, VVFLX,
+            HSURF, TRACER)
 
 
 
+def random2D(GR, FIELD, pert):
+    FIELD = FIELD + pert*np.random.rand(FIELD.shape[0], FIELD.shape[1])
+    return(FIELD)
 
 def gaussian2D(GR, FIELD, pert, lon0_rad, lat0_rad, lonSig_rad, latSig_rad):
 

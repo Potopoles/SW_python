@@ -8,7 +8,7 @@ from boundaries import exchange_BC
 #from constants import con_g
 from namelist import inpRate, outRate, i_pseudo_radiation
 from height import height_tendency_upstream
-from wind import masspoint_flux_tendency
+from wind import masspoint_flux_tendency_upstream
 from tracer import tracer_tendency_upstream
 
 
@@ -46,7 +46,7 @@ while GR.ts < GR.nts:
     dHGHTdt = height_tendency_upstream(GR, HGHT, UWIND, VWIND, UFLX, VFLX)
 
     # PROGNOSE WIND
-    dUFLXMPdt, dVFLXMPdt = masspoint_flux_tendency(GR, UFLXMP, VFLXMP, HGHT,
+    dUFLXMPdt, dVFLXMPdt = masspoint_flux_tendency_upstream(GR, UFLXMP, VFLXMP, HGHT,
                                                     UWIND, VWIND,
                                                     UUFLX, VUFLX, UVFLX, VVFLX,
                                                     HSURF)

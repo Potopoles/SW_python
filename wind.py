@@ -3,7 +3,7 @@ from boundaries import exchange_BC
 from constants import con_g
 
 
-def masspoint_flux_tendency(GR, UFLXMP, VFLXMP, HGHT,
+def masspoint_flux_tendency_upstream(GR, UFLXMP, VFLXMP, HGHT,
                             UWIND, VWIND,
                             UUFLX, VUFLX, UVFLX, VVFLX,
                             HSURF):

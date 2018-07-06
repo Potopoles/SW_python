@@ -86,9 +86,10 @@ class Grid:
         self.dxis = np.full( (self.nxs+2*self.nb,self.ny+2*self.nb), np.nan)
 
         self.dx[self.iijj] = np.cos( self.lat_rad[self.iijj] )*self.dlon_rad*con_rE 
-        self.dx = exchange_BC_rigid_y(self, self.dx)
         self.dxjs[self.iijjs] = np.cos( self.latjs_rad[self.iijjs] )*self.dlon_rad*con_rE 
-        self.dxis[self.iisjj] = np.cos( self.latis_rad[self.iisjj] )*self.dlon_rad*con_rE 
+        self.dx = exchange_BC_rigid_y(self, self.dx)
+        self.dxjs = exchange_BC_rigid_y(self, self.dxjs)
+        #self.dxis[self.iisjj] = np.cos( self.latis_rad[self.iisjj] )*self.dlon_rad*con_rE 
         self.dy = self.dlat_rad*con_rE
 
         if not i_curved_earth:

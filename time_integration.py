@@ -1,11 +1,11 @@
 import copy
 import numpy as np
-from height import height_tendency_upstream
-from wind import masspoint_flux_tendency_upstream
+from height import height_tendency_upstream, height_tendency_jacobson
+from wind import masspoint_flux_tendency_upstream, wind_tendency_jacobson
 from tracer import tracer_tendency_upstream
 from boundaries import exchange_BC
 
-def tendencies(GR, HGHT, TRACER, HSURF,
+def tendencies_upwind(GR, HGHT, TRACER, HSURF,
                     UWIND, VWIND, WIND,
                     UFLX, VFLX, UFLXMP, VFLXMP,
                     UUFLX, UVFLX, VUFLX, VVFLX):
@@ -15,6 +15,27 @@ def tendencies(GR, HGHT, TRACER, HSURF,
 
     # PROGNOSE WIND
     dUFLXMPdt, dVFLXMPdt = masspoint_flux_tendency_upstream(GR, UFLXMP, VFLXMP, HGHT,
+                                                    UWIND, VWIND,
+                                                    UUFLX, VUFLX, UVFLX, VVFLX,
+                                                    HSURF)
+
+    # PROGNOSE TRACER
+    dTRACERdt = tracer_tendency_upstream(GR, TRACER, HGHT, UWIND, VWIND, UFLX, VFLX, WIND)
+
+
+    return(dHGHTdt, dUFLXMPdt, dVFLXMPdt, dTRACERdt)
+
+
+def tendencies_jacobson(GR, HGHT, TRACER, HSURF,
+                    UWIND, VWIND, WIND,
+                    UFLX, VFLX, UFLXMP, VFLXMP,
+                    UUFLX, UVFLX, VUFLX, VVFLX):
+
+    # PROGNOSE HGHT
+    dHGHTdt, UFLX, VFLX = height_tendency_jacobson(GR, HGHT, UWIND, VWIND, UFLX, VFLX)
+
+    # PROGNOSE WIND
+    dUFLXMPdt, dVFLXMPdt = wind_tendency_jacobson(GR, UFLXMP, VFLXMP, HGHT,
                                                     UWIND, VWIND,
                                                     UUFLX, VUFLX, UVFLX, VVFLX,
                                                     HSURF)
@@ -67,7 +88,8 @@ def euler_forward(GR, HGHT, TRACER,
                     UUFLX, UVFLX, VUFLX, VVFLX,
                     HSURF):
 
-    dHGHTdt, dUFLXMPdt, dVFLXMPdt, dTRACERdt = tendencies(GR, 
+    #dHGHTdt, dUFLXMPdt, dVFLXMPdt, dTRACERdt = tendencies_upwind(GR, 
+    dHGHTdt, dUFLXMPdt, dVFLXMPdt, dTRACERdt = tendencies_jacobson(GR, 
                     HGHT, TRACER, HSURF,
                     UWIND, VWIND, WIND,
                     UFLX, VFLX, UFLXMP, VFLXMP,
@@ -96,7 +118,8 @@ def matsuno(GR, HGHT, TRACER,
                     HSURF):
 
     ########## ESTIMATE
-    dHGHTdt, dUFLXMPdt, dVFLXMPdt, dTRACERdt = tendencies(GR, 
+    #dHGHTdt, dUFLXMPdt, dVFLXMPdt, dTRACERdt = tendencies_upwind(GR, 
+    dHGHTdt, dUFLXMPdt, dVFLXMPdt, dTRACERdt = tendencies_jacobson(GR, 
                     HGHT, TRACER, HSURF,
                     UWIND, VWIND, WIND,
                     UFLX, VFLX, UFLXMP, VFLXMP,
@@ -115,7 +138,8 @@ def matsuno(GR, HGHT, TRACER,
                     UWIND, VWIND, UFLXMP, VFLXMP, HSURF)
 
     ########## FINAL
-    dHGHTdt, dUFLXMPdt, dVFLXMPdt, dTRACERdt = tendencies(GR, 
+    #dHGHTdt, dUFLXMPdt, dVFLXMPdt, dTRACERdt = tendencies_upwind(GR, 
+    dHGHTdt, dUFLXMPdt, dVFLXMPdt, dTRACERdt = tendencies_jacobson(GR, 
                     HGHT, TRACER, HSURF,
                     UWIND, VWIND, WIND,
                     UFLX, VFLX, UFLXMP, VFLXMP,

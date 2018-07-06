@@ -3,13 +3,21 @@ import numpy as np
 from grid import Grid
 from fields import initialize_fields
 from IO import output_to_NC
-from boundaries import exchange_BC
+from namelist import i_time_stepping
+if i_time_stepping == 'EULER_FORWARD':
+    from time_integration import euler_forward as time_stepper
+elif i_time_stepping == 'MATSUNO':
+    from time_integration import matsuno as time_stepper
+elif i_time_stepping == 'RK4':
+    from time_integration import RK4 as time_stepper
 
-#from constants import con_g
-from namelist import inpRate, outRate, i_pseudo_radiation
-from height import height_tendency_upstream
-from wind import masspoint_flux_tendency_upstream
-from tracer import tracer_tendency_upstream
+#jfrom boundaries import exchange_BC
+#j
+#j#from constants import con_g
+#jfrom namelist import inpRate, outRate, i_pseudo_radiation
+#jfrom height import height_tendency_upstream
+#jfrom wind import masspoint_flux_tendency_upstream
+#jfrom tracer import tracer_tendency_upstream
 
 
 GR = Grid()
@@ -42,41 +50,18 @@ while GR.ts < GR.nts:
             str(np.round(mean_hght,2)) + '  m ekin: ' + str(np.round(mean_ekin,3)) + '  tracer: ' + \
             str(np.round(mean_tracer,7)))
 
-    # PROGNOSE HGHT
-    dHGHTdt = height_tendency_upstream(GR, HGHT, UWIND, VWIND, UFLX, VFLX)
-
-    # PROGNOSE WIND
-    dUFLXMPdt, dVFLXMPdt = masspoint_flux_tendency_upstream(GR, UFLXMP, VFLXMP, HGHT,
-                                                    UWIND, VWIND,
-                                                    UUFLX, VUFLX, UVFLX, VVFLX,
-                                                    HSURF)
-
-    # PROGNOSE TRACER
-    dTRACERdt = tracer_tendency_upstream(GR, TRACER, HGHT, UWIND, VWIND, UFLX, VFLX, WIND)
-
-    # TIME STEPPING
-    UFLXMP[GR.iijj] = UFLXMP[GR.iijj] + GR.dt*dUFLXMPdt
-    VFLXMP[GR.iijj] = VFLXMP[GR.iijj] + GR.dt*dVFLXMPdt
-    HGHT[GR.iijj] = HGHT[GR.iijj] + GR.dt*dHGHTdt
-    TRACER[GR.iijj] = TRACER[GR.iijj] + GR.dt*dTRACERdt
-
-    UFLXMP = exchange_BC(GR, UFLXMP)
-    VFLXMP = exchange_BC(GR, VFLXMP)
-    HGHT = exchange_BC(GR, HGHT)
-    TRACER = exchange_BC(GR, TRACER)
-
-    # DIAGNOSTICS 
-    UWIND[GR.iisjj] = ( UFLXMP[GR.iisjj_im1] + UFLXMP[GR.iisjj] ) \
-                    / ( HGHT[GR.iisjj_im1] + HGHT[GR.iisjj] )
-    VWIND[GR.iijjs] = ( VFLXMP[GR.iijjs_jm1] + VFLXMP[GR.iijjs] ) \
-                    / ( HGHT[GR.iijjs_jm1] + HGHT[GR.iijjs] )
-    UWIND = exchange_BC(GR, UWIND)
-    VWIND = exchange_BC(GR, VWIND)
+    HGHT, TRACER, \
+    UWIND, VWIND, \
+    UFLX, VFLX, UFLXMP, VFLXMP, \
+    UUFLX, UVFLX, VUFLX, VVFLX, \
+    HSURF = time_stepper(GR, HGHT, TRACER,
+                    UWIND, VWIND, WIND,
+                    UFLX, VFLX, UFLXMP, VFLXMP,
+                    UUFLX, UVFLX, VUFLX, VVFLX,
+                    HSURF)
 
     HTOP[GR.iijj] = HSURF[GR.iijj] + HGHT[GR.iijj] 
 
-    if i_pseudo_radiation:
-        HGHT[GR.iijj] = HGHT[GR.iijj] - GR.dt*outRate*HGHT[GR.iijj] + inpRate*np.cos(GR.lat_rad[GR.iijj])*GR.dt
 
     if GR.ts % GR.i_out_nth_ts == 0:
         outCounter = outCounter + 1

@@ -12,15 +12,19 @@ dlon_deg = 5
 i_curved_earth = 0
 
 # SIMULATION
-i_sim_n_days = 50
-i_out_nth_hour = 6
+i_sim_n_days = 10
+i_out_nth_hour = 24
 CFL = 0.5
 
-# DYNAMICS
+# SPATIAL DISCRETIZATION
 
+# TIME DISCRETIZATION
+i_time_stepping = 'EULER_FORWARD'
+#i_time_stepping = 'MATSUNO'
+#i_time_stepping = 'RK4'
 
 # INITIAL CONDITIONS
-u0 = 0
+u0 = 10
 h0 = 10000
 hpert = 1000
 h_random_pert = 0

@@ -1,7 +1,7 @@
 import numpy as np
 from namelist import *
 from constants import con_rE, con_omega
-from boundaries import exchange_BC_rigid_y
+from boundaries import exchange_BC_rigid_y, exchange_BC
 
 class Grid:
 
@@ -36,15 +36,43 @@ class Grid:
         self.iis = np.arange((self.nb),(self.nxs+self.nb)) 
         self.jjs = np.arange((self.nb),(self.nys+self.nb)) 
 
-        self.iijj = np.ix_(self.ii,self.jj)
-        self.iijj_im1 = np.ix_(self.ii-1,self.jj)
-        self.iijj_ip1 = np.ix_(self.ii+1,self.jj)
-        self.iijj_jm1 = np.ix_(self.ii,self.jj-1)
-        self.iijj_jp1 = np.ix_(self.ii,self.jj+1)
-        self.iisjj = np.ix_(self.iis,self.jj)
-        self.iisjj_im1 = np.ix_(self.iis-1,self.jj)
-        self.iijjs = np.ix_(self.ii,self.jjs)
-        self.iijjs_jm1 = np.ix_(self.ii,self.jjs-1)
+        self.iijj           = np.ix_(self.ii   ,self.jj  )
+        self.iijj_im1       = np.ix_(self.ii-1 ,self.jj  )
+        self.iijj_im1_jp1   = np.ix_(self.ii-1 ,self.jj+1)
+        self.iijj_ip1       = np.ix_(self.ii+1 ,self.jj  )
+        self.iijj_ip1_jm1   = np.ix_(self.ii+1 ,self.jj-1)
+        self.iijj_ip1_jp1   = np.ix_(self.ii+1 ,self.jj+1)
+        self.iijj_jm1       = np.ix_(self.ii   ,self.jj-1)
+        self.iijj_jp1       = np.ix_(self.ii   ,self.jj+1)
+
+        self.iisjj          = np.ix_(self.iis  ,self.jj  )
+        self.iisjj_jm1      = np.ix_(self.iis  ,self.jj-1)
+        self.iisjj_jp1      = np.ix_(self.iis  ,self.jj+1)
+        self.iisjj_im1      = np.ix_(self.iis-1,self.jj  )
+        self.iisjj_im1_jm1  = np.ix_(self.iis-1,self.jj-1)
+        self.iisjj_im1_jp1  = np.ix_(self.iis-1,self.jj+1)
+        self.iisjj_ip1      = np.ix_(self.iis+1,self.jj  )
+        self.iisjj_ip1_jm1  = np.ix_(self.iis+1,self.jj-1)
+        self.iisjj_ip1_jp1  = np.ix_(self.iis+1,self.jj+1)
+
+        self.iijjs          = np.ix_(self.ii  ,self.jjs  )
+        self.iijjs_im1      = np.ix_(self.ii-1,self.jjs  )
+        self.iijjs_ip1      = np.ix_(self.ii+1,self.jjs  )
+        self.iijjs_jm1      = np.ix_(self.ii  ,self.jjs-1)
+        self.iijjs_im1_jm1  = np.ix_(self.ii-1,self.jjs-1)
+        self.iijjs_im1_jp1  = np.ix_(self.ii-1,self.jjs+1)
+        self.iijjs_ip1_jm1  = np.ix_(self.ii+1,self.jjs-1)
+        self.iijjs_ip1_jp1  = np.ix_(self.ii+1,self.jjs+1)
+        self.iijjs_jp1      = np.ix_(self.ii  ,self.jjs+1)
+
+        self.iisjjs         = np.ix_(self.iis  ,self.jjs  )
+        self.iisjjs_im1     = np.ix_(self.iis-1,self.jjs  )
+        self.iisjjs_im1_jm1 = np.ix_(self.iis-1,self.jjs-1)
+        self.iisjjs_im1_jp1 = np.ix_(self.iis-1,self.jjs+1)
+        self.iisjjs_ip1     = np.ix_(self.iis+1,self.jjs  )
+        self.iisjjs_ip1_jm1 = np.ix_(self.iis+1,self.jjs-1)
+        self.iisjjs_jm1     = np.ix_(self.iis  ,self.jjs-1)
+        self.iisjjs_jp1     = np.ix_(self.iis  ,self.jjs+1)
 
         # 2D MATRIX OF LONGITUDES AND LATITUDES IN DEGREES
         self.lon_deg = np.full( (self.nx+2*self.nb,self.ny+2*self.nb), np.nan)
@@ -101,11 +129,14 @@ class Grid:
         self.A = np.full( (self.nx+2*self.nb,self.ny+2*self.nb), np.nan)
         for i in self.ii:
             for j in self.jj:
-                lon0 = self.lonis_rad[i,j]
-                lon1 = self.lonis_rad[i+1,j]
-                lat0 = self.latjs_rad[i,j]
-                lat1 = self.latjs_rad[i,j+1]
-                self.A[i,j] = lat_lon_recangle_area(lon0,lon1,lat0,lat1, i_curved_earth)
+                #lon0 = self.lonis_rad[i,j]
+                #lon1 = self.lonis_rad[i+1,j]
+                #lat0 = self.latjs_rad[i,j]
+                #lat1 = self.latjs_rad[i,j+1]
+                #self.A[i,j] = lat_lon_recangle_area(lon0,lon1,lat0,lat1, i_curved_earth)
+                self.A[i,j] = lat_lon_recangle_area(self.lat_rad[i,j],
+                                    self.dlon_rad, self.dlat_rad, i_curved_earth)
+        self.A = exchange_BC(self, self.A)
 
         print('fraction of earth covered: ' + str(np.round(np.sum(self.A[self.iijj])/(4*np.pi*con_rE**2),2)))
         print('fraction of cylinder covered: ' + str(np.round(np.sum(self.A[self.iijj])/(2*np.pi**2*con_rE**2),2)))
@@ -134,9 +165,17 @@ class Grid:
 
 
 
-def lat_lon_recangle_area(lon0,lon1,lat0,lat1, i_curved_earth):
+#def lat_lon_recangle_area(lon0,lon1,lat0,lat1, i_curved_earth):
+#    if i_curved_earth:
+#        A = 2*np.pi * np.abs(np.sin(lat0) - np.sin(lat1)) * \
+#                np.abs(lon0 - lon1)/(2*np.pi) * con_rE**2
+#    else:
+#        A = np.abs(lat0 - lat1) * np.abs(lon0 - lon1) * con_rE**2
+#    return(A)
+def lat_lon_recangle_area(lat,dlon,dlat, i_curved_earth):
     if i_curved_earth:
-        A = 2*np.pi * np.abs(np.sin(lat0) - np.sin(lat1)) * np.abs(lon0 - lon1)/(2*np.pi) * con_rE**2
+        A = np.cos(lat) * \
+                dlon * dlat * con_rE**2
     else:
-        A = np.abs(lat0 - lat1) * np.abs(lon0 - lon1) * con_rE**2
+        A = dlon * dlat * con_rE**2
     return(A)

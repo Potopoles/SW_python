@@ -1,6 +1,6 @@
 import numpy as np
 from namelist import *
-from boundaries import exchange_BC_all, exchange_BC_rigid_y, exchange_BC_periodic_x
+from boundaries import exchange_BC_all, exchange_BC
 from IO import load_topo
 
 def initialize_fields(GR):
@@ -15,8 +15,9 @@ def initialize_fields(GR):
     # mass fluxes at velocity points
     UFLX = np.full( (GR.nxs+2*GR.nb,GR.ny+2*GR.nb), np.nan)
     VFLX = np.full( (GR.nx+2*GR.nb,GR.nys+2*GR.nb), np.nan)
+
+    # FOR MASSPOINT_FLUX_TENDENCY_UPSTREAM:
     # mass fluxes at mass points
-    UFLX = np.full( (GR.nxs+2*GR.nb,GR.ny+2*GR.nb), np.nan)
     UFLXMP = np.full( (GR.nx+2*GR.nb,GR.ny+2*GR.nb), np.nan)
     VFLXMP = np.full( (GR.nx+2*GR.nb,GR.ny+2*GR.nb), np.nan)
     # momentum fluxes at velocity points
@@ -24,20 +25,26 @@ def initialize_fields(GR):
     VUFLX = np.full( (GR.nx+2*GR.nb,GR.nys+2*GR.nb), np.nan)
     UVFLX = np.full( (GR.nxs+2*GR.nb,GR.ny+2*GR.nb), np.nan)
     VVFLX = np.full( (GR.nx+2*GR.nb,GR.nys+2*GR.nb), np.nan)
+
+    # FOR WIND TENDENCY JACOBSON
     # surface height
     HSURF = load_topo(GR) 
+    #HSURF[GR.iijj] = 0.
+    #HSURF = exchange_BC(GR, HSURF)
     # tracer
     TRACER = np.full( (GR.nx+2*GR.nb,GR.ny+2*GR.nb), np.nan)
 
     
     # INITIAL CONDITIONS
     HGHT[GR.iijj] = h0 - HSURF[GR.iijj]
-    HTOP[GR.iijj] = HSURF[GR.iijj] + HGHT[GR.iijj]
-    UWIND[GR.iisjj] = u0   
-    VWIND[GR.iijjs] = 0.
-
     HGHT = gaussian2D(GR, HGHT, hpert, np.pi*3/4, 0, np.pi/10, np.pi/10)
     HGHT = random2D(GR, HGHT, h_random_pert)
+    HTOP[GR.iijj] = HSURF[GR.iijj] + HGHT[GR.iijj]
+
+    UWIND[GR.iisjj] = u0   
+    UWIND = gaussian2D(GR, UWIND, upert, np.pi*3/4, 0, np.pi/10, np.pi/10)
+    VWIND[GR.iijjs] = v0
+    VWIND = gaussian2D(GR, VWIND, vpert, np.pi*3/4, 0, np.pi/10, np.pi/10)
 
     TRACER[GR.iijj] = 0.
     TRACER = gaussian2D(GR, TRACER, 10, np.pi*3/4, 0, np.pi/10, np.pi/10)

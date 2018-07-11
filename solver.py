@@ -3,22 +3,13 @@ import numpy as np
 from grid import Grid
 from fields import initialize_fields
 from IO import output_to_NC
-from namelist import i_time_stepping
+from namelist import i_time_stepping, i_spatial_discretization
 if i_time_stepping == 'EULER_FORWARD':
     from time_integration import euler_forward as time_stepper
 elif i_time_stepping == 'MATSUNO':
     from time_integration import matsuno as time_stepper
 elif i_time_stepping == 'RK4':
     from time_integration import RK4 as time_stepper
-
-#jfrom boundaries import exchange_BC
-#j
-#j#from constants import con_g
-#jfrom namelist import inpRate, outRate, i_pseudo_radiation
-#jfrom height import height_tendency_upstream
-#jfrom wind import masspoint_flux_tendency_upstream
-#jfrom tracer import tracer_tendency_upstream
-
 
 GR = Grid()
 
@@ -30,7 +21,8 @@ HSURF, TRACER = initialize_fields(GR)
 outCounter = 0
 WIND[GR.iijj] = np.sqrt( ((UWIND[GR.iijj] + UWIND[GR.iijj_ip1])/2)**2 + \
                 ((VWIND[GR.iijj] + VWIND[GR.iijj_jp1])/2)**2 )
-mean_ekin = np.sum( 0.5*1*WIND[GR.iijj]**2*HGHT[GR.iijj]*GR.A[GR.iijj] ) / np.sum( HGHT[GR.iijj]*GR.A[GR.iijj] )
+mean_ekin = np.sum( 0.5*1*WIND[GR.iijj]**2*HGHT[GR.iijj]*GR.A[GR.iijj] ) / \
+                np.sum( HGHT[GR.iijj]*GR.A[GR.iijj] )
 output_to_NC(GR, outCounter, HGHT, HTOP, UWIND, VWIND, WIND,
             HSURF, TRACER,
             mean_ekin)
@@ -41,13 +33,16 @@ while GR.ts < GR.nts:
 
     vmax = max(np.max(UWIND[GR.iisjj]), np.max(VWIND[GR.iijjs]))
     mean_hght = np.sum(HGHT[GR.iijj]*GR.A[GR.iijj])/np.sum(GR.A[GR.iijj])
-    mean_tracer = np.sum(TRACER[GR.iijj]*GR.A[GR.iijj]*HGHT[GR.iijj])/np.sum(GR.A[GR.iijj]*HGHT[GR.iijj])
+    mean_tracer = np.sum(TRACER[GR.iijj]*GR.A[GR.iijj]*HGHT[GR.iijj])/ \
+            np.sum(GR.A[GR.iijj]*HGHT[GR.iijj])
     WIND[GR.iijj] = np.sqrt( ((UWIND[GR.iijj] + UWIND[GR.iijj_ip1])/2)**2 + \
                     ((VWIND[GR.iijj] + VWIND[GR.iijj_jp1])/2)**2 )
-    mean_ekin = np.sum( 0.5*1*WIND[GR.iijj]**2*HGHT[GR.iijj]*GR.A[GR.iijj] ) / np.sum( HGHT[GR.iijj]*GR.A[GR.iijj] )
+    mean_ekin = np.sum( 0.5*1*WIND[GR.iijj]**2*HGHT[GR.iijj]*GR.A[GR.iijj] ) / \
+            np.sum( HGHT[GR.iijj]*GR.A[GR.iijj] )
     print('#### ' + str(GR.ts) + '  ' + str(np.round(GR.sim_time_sec/3600/24,2)) + \
             '  days  vmax: ' + str(np.round(vmax,1)) + '  m/s  hght: ' + \
-            str(np.round(mean_hght,2)) + '  m ekin: ' + str(np.round(mean_ekin,3)) + '  tracer: ' + \
+            str(np.round(mean_hght,2)) + '  m ekin: ' + \
+            str(np.round(mean_ekin,3)) + '  tracer: ' + \
             str(np.round(mean_tracer,7)))
 
     HGHT, TRACER, \
@@ -58,8 +53,9 @@ while GR.ts < GR.nts:
                     UWIND, VWIND, WIND,
                     UFLX, VFLX, UFLXMP, VFLXMP,
                     UUFLX, UVFLX, VUFLX, VVFLX,
-                    HSURF)
+                    HSURF, i_spatial_discretization)
 
+    # OUTPUT DIAGNOSTICS
     HTOP[GR.iijj] = HSURF[GR.iijj] + HGHT[GR.iijj] 
 
 
@@ -68,7 +64,8 @@ while GR.ts < GR.nts:
         print('write fields')
         WIND[GR.iijj] = np.sqrt( ((UWIND[GR.iijj] + UWIND[GR.iijj_ip1])/2)**2 + \
                         ((VWIND[GR.iijj] + VWIND[GR.iijj_jp1])/2)**2 )
-        mean_ekin = np.sum( 0.5*1*WIND[GR.iijj]**2*HGHT[GR.iijj]*GR.A[GR.iijj] ) / np.sum( HGHT[GR.iijj]*GR.A[GR.iijj] )
+        mean_ekin = np.sum( 0.5*1*WIND[GR.iijj]**2*HGHT[GR.iijj]*GR.A[GR.iijj] ) / \
+                        np.sum( HGHT[GR.iijj]*GR.A[GR.iijj] )
         output_to_NC(GR, outCounter, HGHT, HTOP, UWIND, VWIND, WIND,
                     HSURF, TRACER,
                     mean_ekin)
